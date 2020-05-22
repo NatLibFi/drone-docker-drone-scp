@@ -1,0 +1,52 @@
+---
+kind: pipeline
+type: docker
+name: default
+
+clone:
+  disable: true
+
+steps:
+- name: generate-tags
+  image: quay.io/natlibfi/drone-gen-tags
+
+- name: clone-upstream
+  image: alpine/git
+  commands:
+    - git clone -b master https://github.com/appleboy/drone-scp repo
+  
+- name: build
+  image: golang:1
+  environment:
+    GOOS: linux
+    GOARCH: amd64
+    CGO_ENABLED: 0
+    GO111MODULE: on
+  commands:
+    - cd repo
+    - go build -a -tags netgo -o release/linux/amd64/drone-scp
+
+- name: docker
+  image: plugins/docker
+  settings:
+    context: repo
+    dockerfile: repo/docker/Dockerfile.linux.amd64
+    repo: quay.io/natlibfi/drone-plugin-scp
+    registry: quay.io
+    username:
+      from_secret: docker_username
+    password:
+      from_secret: docker_password
+---
+kind: secret
+name: docker_username
+data: vzIApaNkKVNlQoevdv8ExeOJuaDDPU2UgUN/u9Ep0QByF4m5vuiJpsY/XuTjnMVM8i4ScHIy0EIGJA==
+---
+kind: secret
+name: docker_password
+data: 7xDLYdwxUudDehSmXVhgV6N71CZ0WcCu9oKbIqCEcVVzye1C3O3aGvn62hoA6cnpY0KXQne8tPhBtRK6Ty+/bD+GIjcPCwftmuWP3C/E1XoxjPD7Dxp5ZJdFXyM=
+---
+kind: signature
+hmac: 463c1f8e7bfb5d988c5a3a65bd12ee950f5147c3486d1e2bba553cc1b62bae61
+
+...
